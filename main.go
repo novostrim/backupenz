@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	VERSION = `1.0.0`
+	VERSION = `1.0.1`
 )
 
 func IsEmpty(in string) bool {
@@ -392,9 +392,11 @@ func main() {
 		log.SetOutput(f)
 	}
 	log.Println("Start backupenz")
-	if IsEmpty(flags.url) {
-		log.Fatalln("ERROR! Eonza URL is undefined")
+	for IsEmpty(flags.url) {
+		fmt.Print("Eonza URL: ")
+		fmt.Scanln(&flags.url)
 	}
+
 	var err error
 	enzurl, err = url.Parse(flags.url)
 	if err != nil {
@@ -415,9 +417,6 @@ func main() {
 		for IsEmpty(flags.pass) {
 			fmt.Print("Password: ")
 			fmt.Scanln(&flags.pass)
-		}
-		if flags.login == `exit` {
-			break
 		}
 		err := connect(client)
 		if err == nil {
