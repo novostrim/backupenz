@@ -17,14 +17,17 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	//	"reflect"
 	"strconv"
 	"strings"
 )
 
 const (
-	VERSION = `1.0.1`
+	VERSION  = `1.1.0`
+	HOMEPAGE = `http://www.eonza.org/backup-eonza-files.html`
 )
 
 func IsEmpty(in string) bool {
@@ -59,7 +62,8 @@ type appFlags struct {
 	storage string
 	log     string
 	db      bool
-	all     bool
+	mirror  bool
+	help    bool
 }
 
 var (
@@ -90,8 +94,9 @@ func init() {
 	FlagParam(&flags.pass, `p`, `Psw`, `Password`)
 	FlagParam(&flags.storage, `s`, `Storage`, `Local storage path`)
 	FlagParam(&flags.log, `l`, `Log`, `Log file`)
-	FlagParam(&flags.all, "m", `Mirror`, `Mirror synchronization`)
+	FlagParam(&flags.mirror, "m", `Mirror`, `Mirror synchronization`)
 	FlagParam(&flags.db, "db", `Dbackup`, `Backup database`)
+	FlagParam(&flags.help, "h", `Help`, `Open homepage`)
 }
 
 func getapi(in string) string {
@@ -123,7 +128,7 @@ func connect(client *http.Client) error {
 }
 
 func getmaxid() (id int) {
-	if flags.all {
+	if flags.mirror {
 		return 0
 	}
 	d, err := os.Open(storage)
@@ -379,7 +384,18 @@ func createbackup() {
 func main() {
 	iniflags.Parse()
 	fmt.Println(`Backup Eonza Files v`+VERSION, ` beta, (c) Novostrim OOO, 2015`)
-	fmt.Println(`Site: http://www.eonza.org`)
+	fmt.Println(`Help: `, HOMEPAGE)
+	if flags.help {
+		switch runtime.GOOS {
+		case "linux":
+			exec.Command("xdg-open", HOMEPAGE).Start()
+		case "windows":
+			exec.Command(`rundll32.exe`, `url.dll,FileProtocolHandler`,
+				HOMEPAGE).Start()
+		case "darwin":
+			exec.Command("open", HOMEPAGE).Start()
+		}
+	}
 	dirs = make(map[string]bool)
 	if !IsEmpty(flags.log) {
 		flags.log, _ = filepath.Abs(flags.log)
@@ -431,14 +447,14 @@ func main() {
 	}
 	storage = filepath.Join(flags.storage, enzurl.Host, filepath.FromSlash(enzurl.Path))
 	log.Println("Storage path: ", storage)
-	if flags.all {
+	if flags.mirror {
 		getfulllist()
 	}
 	loadfiles(getmaxid())
 	if downloaded == 0 {
 		log.Println(`There are no files to download`)
 	}
-	if flags.all {
+	if flags.mirror {
 		todel := 0
 		for key := range fullList {
 			if base := filepath.Base(key); strings.HasPrefix(base, `_`) {
